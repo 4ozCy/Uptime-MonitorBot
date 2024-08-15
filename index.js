@@ -1,13 +1,14 @@
-const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType} = require('discord.js');
+const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType, Collection} = require('discord.js');
 const axios = require('axios');
 const mongoose = require('mongoose');
 require('dotenv').config();
 const PORT = process.env.PORT || 3000;
 const express = require('express');
 const app = express();
+const { Player } = require('discord-player');
 
 const client = new Client({ 
-    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages.GuildVoicStates],
     partials: [Partials.Channel]
 });
 
@@ -25,6 +26,9 @@ const siteSchema = new mongoose.Schema({
 
 const Site = mongoose.model('Site', siteSchema);
 
+const player = new Player(client);
+client.commands = new Collection();
+
 const commands = [
     new SlashCommandBuilder()
         .setName('add-site')
@@ -32,25 +36,48 @@ const commands = [
         .addStringOption(option =>
             option.setName('url')
                 .setDescription('The URL of the site to monitor')
-                .setRequired(true)
-        ).toJSON(),
+                .setRequired(true)),
     new SlashCommandBuilder()
         .setName('delete-site')
         .setDescription('Delete a site from monitoring')
         .addStringOption(option =>
             option.setName('url')
         .setDescription('The URL of the site to remove')
-        .setRequired(true)
-        ).toJSON(),
+        .setRequired(true)),
     new SlashCommandBuilder()
         .setName('status')
-        .setDescription('Check the status of all monitored sites')
-        .toJSON(),
+        .setDescription('Check the status of all monitored sites'),
     new SlashCommandBuilder()
         .setName('site-list')
-        .setDescription('Get a list of all monitored sites')
-         .toJSON()
-];
+        .setDescription('Get a list of all monitored sites'),
+    new SlashCommandBuilder()
+        .setName('play')
+        .setDescription('Play a song from YouTube')
+        .addStringOption(option =>
+            option.setName('song')
+                .setDescription('The song to play')
+                .setRequired(true)),
+    new SlashCommandBuilder()
+        .setName('skip')
+        .setDescription('Skip the currently playing song'),
+    new SlashCommandBuilder()
+        .setName('stop')
+        .setDescription('Stop the music and clear the queue'),
+    new SlashCommandBuilder()
+        .setName('volume')
+        .setDescription('Adjust the playback volume')
+        .addIntegerOption(option =>
+            option.setName('level')
+                .setDescription('Volume level (1-100)')
+                .setRequired(true)),
+    new SlashCommandBuilder()
+        .setName('speed')
+        .setDescription('Adjust the playback speed')
+        .addNumberOption(option =>
+            option.setName('rate')
+                .setDescription('Speed rate (0.5 - 2.0)')
+                .setRequired(true)),
+].map(command => command.toJSON());
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
@@ -121,7 +148,7 @@ async function monitorSites() {
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
     client.user.setActivity({
-        name: 'Your Monitor Heart Beat',
+        name: 'Your Heart Beat',
         type: ActivityType.Listening,
     });
     setInterval(monitorSites, 1 * 60 * 1000);
@@ -176,6 +203,33 @@ client.on('interactionCreate', async interaction => {
             .setColor(0x00ff00)
             .setTimestamp();
         await interaction.reply({ embeds: [embed] });
+   } else if (commandName === 'play') {
+        const song = interaction.options.getString('song');
+        const queue = player.createQueue(interaction.guild);
+        await queue.join(interaction.member.voice.channel);
+        const track = await player.search(song, {
+            requestedBy: interaction.user
+        }).then(x => x.tracks[0]);
+        queue.play(track);
+        await interaction.reply({ content: `Playing **${track.title}**`, ephemeral: true });
+    } else if (commandName === 'skip') {
+        const queue = player.getQueue(interaction.guild);
+        queue.skip();
+        await interaction.reply({ content: 'Skipped the current song.', ephemeral: true });
+    } else if (commandName === 'stop') {
+        const queue = player.getQueue(interaction.guild);
+        queue.destroy();
+        await interaction.reply({ content: 'Stopped the music and cleared the queue.', ephemeral: true });
+    } else if (commandName === 'volume') {
+        const level = interaction.options.getInteger('level');
+        const queue = player.getQueue(interaction.guild);
+        queue.setVolume(level);
+        await interaction.reply({ content: `Volume set to **${level}%**`, ephemeral: true });
+    } else if (commandName === 'speed') {
+        const rate = interaction.options.getNumber('rate');
+        const queue = player.getQueue(interaction.guild);
+        queue.filters.setFilter('speed', { speed: rate });
+        await interaction.reply({ content: `Playback speed set to **${rate}x**`, ephemeral: true });
     }
 });
     
