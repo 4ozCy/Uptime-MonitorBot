@@ -9,12 +9,9 @@ const multer = require('multer');
 const clamav = require('clamav.js');
 const fs = require('fs');
 
-const client = new Client({
-    intents: [
-        GatewayIntentBits.Guilds,
-        GatewayIntentBits.GuildMessages,
-        GatewayIntentBits.MessageContent,
-    ]
+const client = new Client({ 
+    intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+    partials: [Partials.Channel]
 });
 
 const upload = multer({ dest: 'uploads/' });
@@ -84,11 +81,13 @@ async function checkSiteStatus(site) {
         const response = await axios.get(site.url);
         const ping = Date.now() - start;
         const newStatus = response.status === 200 ? 'UP' : 'DOWN';
-        if (site.status !== newStatus || site.ping !== ping) {
+
+        if (site.status !== newStatus) {
             site.status = newStatus;
             site.ping = ping;
             site.lastChecked = new Date();
             await site.save();
+
             const channel = client.channels.cache.get(process.env.CHANNEL_ID);
             if (channel) {
                 const embed = new EmbedBuilder()
@@ -101,12 +100,13 @@ async function checkSiteStatus(site) {
         }
     } catch (error) {
         const newStatus = 'DOWN';
-        const ping = null;
+
         if (site.status !== newStatus) {
             site.status = newStatus;
-            site.ping = ping;
+            site.ping = null;
             site.lastChecked = new Date();
             await site.save();
+
             const channel = client.channels.cache.get(process.env.CHANNEL_ID);
             if (channel) {
                 const embed = new EmbedBuilder()
@@ -177,24 +177,18 @@ client.on('interactionCreate', async interaction => {
         await interaction.reply({ embeds: [embed] });
     } else if (commandName === 'status') {
         const sites = await Site.find();
-        const embed = new EmbedBuilder()
-            .setTitle('Current Status')
-            .setColor(0x0099FF)
-            .setTimestamp();
+        let statusMessage = '**Current Status:**\n';
         sites.forEach(site => {
-            embed.addFields({ name: site.url, value: `${site.status} (Last Checked: ${site.lastChecked.toLocaleTimeString()})` });
+            statusMessage += `${site.url}: ${site.status} (Ping: ${site.ping !== null ? site.ping + 'ms' : 'N/A'}) (Last Checked: ${site.lastChecked.toLocaleTimeString()})\n`;
         });
+        const embed = new EmbedBuilder()
+            .setTitle('Monitored Sites Status')
+            .setDescription(statusMessage)
+            .setColor(0x00ff00)
+            .setTimestamp();
         await interaction.reply({ embeds: [embed] });
     } else if (commandName === 'site-list') {
-        const sites = await Site.find();
-        const embed = new EmbedBuilder()
-            .setTitle('Monitored Sites')
-            .setColor(0x0099FF)
-            .setTimestamp();
-        sites.forEach(site => {
-            embed.addFields({ name: site.url, value: ' ' });
-        });
-        await interaction.reply({ embeds: [embed] });
+        
    } else if (commandName === 'scan-file') 
 {
         const attachment = interaction.options.getAttachment('file');
