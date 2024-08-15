@@ -5,16 +5,11 @@ require('dotenv').config();
 const PORT = process.env.PORT || 3000;
 const express = require('express');
 const app = express();
-const multer = require('multer');
-const clamav = require('clamav.js');
-const fs = require('fs');
 
 const client = new Client({ 
     intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
     partials: [Partials.Channel]
 });
-
-const upload = multer({ dest: 'uploads/' });
 
 mongoose.connect(process.env.MONGODB_URL, {
     useNewUrlParser: true,
@@ -37,29 +32,25 @@ const commands = [
         .addStringOption(option =>
             option.setName('url')
                 .setDescription('The URL of the site to monitor')
-                .setRequired(true)),
+                .setRequired(true)
+        ).toJSON(),
     new SlashCommandBuilder()
         .setName('delete-site')
         .setDescription('Delete a site from monitoring')
         .addStringOption(option =>
             option.setName('url')
-                .setDescription('The URL of the site to remove')
-                .setRequired(true)),
+        .setDescription('The URL of the site to remove')
+        .setRequired(true)
+        ).toJSON(),
     new SlashCommandBuilder()
         .setName('status')
-        .setDescription('Check the status of all monitored sites'),
+        .setDescription('Check the status of all monitored sites')
+        .toJSON(),
     new SlashCommandBuilder()
         .setName('site-list')
-        .setDescription('Get a list of all monitored sites'),
-    new SlashCommandBuilder()
-        .setName('scan-file')
-        .setDescription('Scan an uploaded file for viruses')
-        .addAttachmentOption(option =>
-            option.setName('file')
-        .setDescription('The file to scan')
-        .setRequired(true)),
-]
-    .map(command => command.toJSON());
+        .setDescription('Get a list of all monitored sites')
+         .toJSON()
+];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
 
@@ -67,7 +58,7 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
     try {
         await rest.put(
             Routes.applicationGuildCommands(process.env.CLIENT_ID, process.env.GUILD_ID),
-            { body: commands },
+            { body: commands }
         );
         console.log('Successfully registered application commands.');
     } catch (error) {
@@ -127,21 +118,6 @@ async function monitorSites() {
     });
 }
 
-async function scanFile(filePath) {
-    return new Promise((resolve, reject) => {
-        const port = 3310;
-        const host = 'localhost';
-
-        clamav.createScanner(port, host).scan(filePath, (err, object, malicious) => {
-            if (err) {
-                reject(err);
-            } else {
-                resolve(malicious);
-            }
-        });
-    });
-}
-
 client.once('ready', async () => {
     console.log(`Logged in as ${client.user.tag}!`);
     client.user.setActivity({
@@ -187,36 +163,19 @@ client.on('interactionCreate', async interaction => {
             .setColor(0x00ff00)
             .setTimestamp();
         await interaction.reply({ embeds: [embed] });
-    } else if (commandName === 'site-list') {
-        
-   } else if (commandName === 'scan-file') 
+    } else if (commandName === 'site-list') 
 {
-        const attachment = interaction.options.getAttachment('file');
-
-        const filePath = `uploads/${attachment.name}`;
-        const fileStream = fs.createWriteStream(filePath);
-
-        const response = await axios.get(attachment.url, { responseType: 'stream' });
-        response.data.pipe(fileStream);
-
-        fileStream.on('finish', async () => {
-            try {
-                const isMalicious = await scanFile(filePath);
-
-                const embed = new EmbedBuilder()
-                    .setTitle('File Scan Result')
-                    .setDescription(isMalicious ? '⚠️ Malicious file detected!' : '✅ File is clean.')
-                    .addFields({ name: 'File', value: attachment.name })
-                    .setColor(isMalicious ? 0xff0000 : 0x00ff00);
-
-                await interaction.reply({ embeds: [embed] });
-            } catch (error) {
-                console.error(error);
-                await interaction.reply('An error occurred during the scan.');
-            } finally {
-                fs.unlinkSync(filePath);
-            }
+        const sites = await Site.find();
+        let siteListMessage = '**Monitored Sites:**\n';
+        sites.forEach(site => {
+            siteListMessage += `${site.url}\n`;
         });
+        const embed = new EmbedBuilder()
+            .setTitle('Monitored Sites List')
+            .setDescription(siteListMessage)
+            .setColor(0x00ff00)
+            .setTimestamp();
+        await interaction.reply({ embeds: [embed] });
     }
 });
     
