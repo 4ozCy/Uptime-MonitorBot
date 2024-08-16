@@ -57,7 +57,7 @@ const commands = [
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('The user to send the message to')
-                .setRequired(true)
+                .setRequired(true))
         .addStringOption(option =>
             option.setName('message')
                 .setDescription('The anonymous message')
