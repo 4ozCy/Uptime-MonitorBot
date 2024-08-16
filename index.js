@@ -89,7 +89,7 @@ const commands = [
             option.setName('levels')
                 .setDescription('The number of levels to add')
                 .setRequired(true))
-        .toJSON()
+        .toJSON(),
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -289,6 +289,7 @@ client.on('interactionCreate', async interaction => {
         } catch (error) {
             console.error(error);
             await interaction.reply({ content: `There was an error sending the message. Please try again.`, ephemeral: true });
+}
       } else if (commandName === 'level') {
         const user = await User.findOne({ userId: interaction.user.id });
 
@@ -322,26 +323,32 @@ client.on('interactionCreate', async interaction => {
 
         await interaction.reply({ embeds: [leaderboardEmbed] });
     } else if (commandName === 'add-level') {
-        const targetUser = interaction.options.getUser('user');
-        const levelsToAdd = interaction.options.getInteger('levels');
+    const allowedUsers = ['1107744228773220473', ''];
 
-        let user = await User.findOne({ userId: targetUser.id });
-
-        if (!user) {
-            user = new User({ userId: targetUser.id });
-        }
-
-        user.level += levelsToAdd;
-        await user.save();
-
-        const embed = new EmbedBuilder()
-            .setTitle('Level Added')
-            .setDescription(`Added **${levelsToAdd}** level(s) to **${targetUser.username}**. They are now at level **${user.level}**.`)
-            .setColor(0x00ff00)
-            .setTimestamp();
-
-        await interaction.reply({ embeds: [embed] });
+    if (!allowedUsers.includes(interaction.user.id)) {
+        return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
     }
+
+    const targetUser = interaction.options.getUser('user');
+    const levelsToAdd = interaction.options.getInteger('levels');
+
+    let user = await User.findOne({ userId: targetUser.id });
+
+    if (!user) {
+        user = new User({ userId: targetUser.id, username: targetUser.username, level: 1, experience: 0 });
+    }
+
+    user.level += levelsToAdd;
+    await user.save();
+
+    const embed = new EmbedBuilder()
+        .setTitle('Level Added')
+        .setDescription(`Added **${levelsToAdd}** level(s) to **${targetUser.username}**. They are now at level **${user.level}**.`)
+        .setColor(0x00ff00)
+        .setTimestamp();
+
+    await interaction.reply({ embeds: [embed] });
+  }
 });
 
 app.get('/', (req, res) => {
