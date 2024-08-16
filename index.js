@@ -89,7 +89,7 @@ const commands = [
             option.setName('levels')
                 .setDescription('The number of levels to add')
                 .setRequired(true))
-        .toJSON(),
+        .toJSON()
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -288,8 +288,7 @@ client.on('interactionCreate', async interaction => {
             await interaction.reply({ content: `Your anonymous message has been sent to ${targetUser.tag}.`, ephemeral: true });
         } catch (error) {
             console.error(error);
-            await interaction.reply({ content: `There was an error sending the message. Please try again.`, ephemeral: true });
-}
+            await interaction.reply({ content: `There was an error sending the message. Please try again.`, ephemeral: true });}
       } else if (commandName === 'level') {
         const user = await User.findOne({ userId: interaction.user.id });
 
@@ -348,6 +347,7 @@ client.on('interactionCreate', async interaction => {
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
+            
   }
 });
 
