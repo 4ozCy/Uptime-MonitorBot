@@ -1,4 +1,5 @@
-const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType} = require('discord.js');
+const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType } = require('discord.js');
+const { joinVoiceChannel } = require('@discordjs/voice');
 const axios = require('axios');
 const mongoose = require('mongoose');
 require('dotenv').config();
@@ -7,7 +8,11 @@ const express = require('express');
 const app = express();
 
 const client = new Client({ 
-      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages],
+      intents: [
+            GatewayIntentBits.Guilds, 
+            GatewayIntentBits.GuildMessages, 
+            GatewayIntentBits.GuildVoiceStates
+      ],
       partials: [Partials.Channel]
 });
 
@@ -39,8 +44,8 @@ const commands = [
             .setDescription('Delete a site from monitoring')
             .addStringOption(option =>
                   option.setName('url')
-            .setDescription('The URL of the site to remove')
-            .setRequired(true)
+                        .setDescription('The URL of the site to remove')
+                        .setRequired(true)
             ).toJSON(),
       new SlashCommandBuilder()
             .setName('status')
@@ -49,7 +54,7 @@ const commands = [
       new SlashCommandBuilder()
             .setName('site-list')
             .setDescription('Get a list of all monitored sites')
-             .toJSON()
+            .toJSON()
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -163,8 +168,7 @@ client.on('interactionCreate', async interaction => {
                   .setColor(0x00ff00)
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
-      } else if (commandName === 'site-list') 
-{
+      } else if (commandName === 'site-list') {
             const sites = await Site.find();
             let siteListMessage = '**Monitored Sites:**\n';
             sites.forEach(site => {
@@ -178,9 +182,20 @@ client.on('interactionCreate', async interaction => {
             await interaction.reply({ embeds: [embed] });
       }
 });
-      
+
+client.on('voiceStateUpdate', (oldState, newState) => {
+      if (newState.member.id === process.env.OWNER_ID && newState.channelId && !newState.channel.members.has(client.user.id)) {
+            joinVoiceChannel({
+                  channelId: newState.channelId,
+                  guildId: newState.guild.id,
+                  adapterCreator: newState.guild.voiceAdapterCreator,
+            });
+            console.log(`Joined ${newState.channel.name} in ${newState.guild.name}`);
+      }
+});
+
 app.get('/', (req, res) => {
-  res.send('the bot is online');
+      res.send('the bot is online');
 });
 
 app.listen(PORT, () => {
