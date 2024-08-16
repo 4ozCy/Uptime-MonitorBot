@@ -33,16 +33,16 @@ const commands = [
             .addStringOption(option =>
                   option.setName('url')
                         .setDescription('The URL of the site to monitor')
-                        .setRequired(true)
-            ).toJSON(),
+                        .setRequired(true))
+            .toJSON(),
       new SlashCommandBuilder()
             .setName('delete-site')
             .setDescription('Delete a site from monitoring')
             .addStringOption(option =>
                   option.setName('url')
                         .setDescription('The URL of the site to remove')
-                        .setRequired(true)
-            ).toJSON(),
+                        .setRequired(true))
+            .toJSON(),
       new SlashCommandBuilder()
             .setName('status')
             .setDescription('Check the status of all monitored sites')
@@ -61,7 +61,7 @@ const commands = [
         .addStringOption(option =>
             option.setName('message')
                 .setDescription('The anonymous message')
-                .setRequired(true)
+                .setRequired(true))
         .toJSON()
 ];
 
