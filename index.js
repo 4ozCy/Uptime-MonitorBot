@@ -184,13 +184,16 @@ client.on('interactionCreate', async interaction => {
 });
 
 client.on('voiceStateUpdate', (oldState, newState) => {
-      if (newState.member.id === process.env.OWNER_ID && newState.channelId && !newState.channel.members.has(client.user.id)) {
-            joinVoiceChannel({
-                  channelId: newState.channelId,
-                  guildId: newState.guild.id,
-                  adapterCreator: newState.guild.voiceAdapterCreator,
-            });
-            console.log(`Joined ${newState.channel.name} in ${newState.guild.name}`);
+      if (newState.member.id === client.user.id) return;
+      if (newState.channelId && newState.member.id === '1107744228773220473') {
+            const channel = newState.guild.channels.cache.get(newState.channelId);
+            if (channel && channel.isVoice()) {
+                  joinVoiceChannel({
+                        channelId: channel.id,
+                        guildId: channel.guild.id,
+                        adapterCreator: channel.guild.voiceAdapterCreator,
+                  });
+            }
       }
 });
 
