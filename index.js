@@ -276,19 +276,6 @@ client.on('interactionCreate', async interaction => {
                   .setColor(0x00ff00)
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
-      } else if (commandName === 'anon-msg') {
-            const targetUser = interaction.options.getUser('user');
-        const anonymousMessage = interaction.options.getString('message');
-            
-        try {
-            if (anonymousMessage) {
-                await targetUser.send(`You have received an anonymous message:\n\n${anonymousMessage}`);
-            }
-
-            await interaction.reply({ content: `Your anonymous message has been sent to ${targetUser.tag}.`, ephemeral: true });
-        } catch (error) {
-            console.error(error);
-            await interaction.reply({ content: `There was an error sending the message. Please try again.`, ephemeral: true });}
       } else if (commandName === 'level') {
         const user = await User.findOne({ userId: interaction.user.id });
 
@@ -319,7 +306,6 @@ client.on('interactionCreate', async interaction => {
             .setColor(0x00ff00)
             .setTitle('Top 10 Users')
             .setDescription(`\`\`\`xml\n${leaderboardText}\n\`\`\``);
-
         await interaction.reply({ embeds: [leaderboardEmbed] });
     } else if (commandName === 'add-level') {
     const allowedUsers = ['1107744228773220473', ''];
@@ -347,8 +333,21 @@ client.on('interactionCreate', async interaction => {
         .setTimestamp();
 
     await interaction.reply({ embeds: [embed] });
+      } else if (commandName === 'anon-msg') {
+            const targetUser = interaction.options.getUser('user');
+        const anonymousMessage = interaction.options.getString('message');
             
-  }
+        try {
+            if (anonymousMessage) {
+                await targetUser.send(`You have received an anonymous message:\n\n${anonymousMessage}`);
+            }
+
+            await interaction.reply({ content: `Your anonymous message has been sent to ${targetUser.tag}.`, ephemeral: true });
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: `There was an error sending the message. Please try again.`, ephemeral: true });
+          }
+      }
 });
 
 app.get('/', (req, res) => {
