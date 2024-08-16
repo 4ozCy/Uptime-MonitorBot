@@ -225,25 +225,20 @@ client.on('interactionCreate', async interaction => {
         const message = interaction.options.getString('message');
         const file = interaction.options.getAttachment('file');
 
-        try {
-            const dmChannel = await target.createDM();
+        if (!target) {
+            await interaction.reply({ content: 'User not found.', ephemeral: true });
+            return;
+        }
 
-            if (message && file) {
-                await dmChannel.send({
-                    content: message,
-                    files: [file.url]
-                });
-            } else if (message) {
-                await dmChannel.send(message);
-            } else if (file) {
-                await dmChannel.send({
-                    files: [file.url]
-                });
-            }
+        try {
+            const dmChannel = await target.send({
+                content: message || 'Here is the file you received anonymously.',
+                files: file ? [file] : [],
+            });
 
             await interaction.reply({ content: 'Anonymous message sent!', ephemeral: true });
         } catch (error) {
-            if (error.message.includes('Cannot send messages to this user')) {
+            if (error.code === 50007) {
                 await interaction.reply({ content: 'Failed to send the message. The user has their DMs closed.', ephemeral: true });
             } else {
                 console.error(error);
