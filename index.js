@@ -221,24 +221,34 @@ client.on('interactionCreate', async interaction => {
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
       } else if (commandName === 'anon-msg') {
-        const targetUser = interaction.options.getUser('user');
-        const anonymousMessage = interaction.options.getString('message');
-        const anonymousFile = interaction.options.getAttachment('file');
+        const target = interaction.options.getUser('target');
+        const message = interaction.options.getString('message');
+        const file = interaction.options.getAttachment('file');
 
         try {
-            if (anonymousMessage) {
-                await targetUser.send(`You have received an anonymous message:\n\n${anonymousMessage}`);
+            const dmChannel = await target.createDM();
+
+            if (message && file) {
+                await dmChannel.send({
+                    content: message,
+                    files: [file.url]
+                });
+            } else if (message) {
+                await dmChannel.send(message);
+            } else if (file) {
+                await dmChannel.send({
+                    files: [file.url]
+                });
             }
 
-            if (anonymousFile) {
-                const attachment = new AttachmentBuilder(anonymousFile.url);
-                await targetUser.send({ content: `You have received an anonymous file:`, files: [attachment] });
-            }
-
-            await interaction.reply({ content: `Your anonymous message or file has been sent to ${targetUser.tag}.`, ephemeral: true });
+            await interaction.reply({ content: 'Anonymous message sent!', ephemeral: true });
         } catch (error) {
-            console.error(error);
-            await interaction.reply({ content: `There was an error sending the message or file. Please try again.`, ephemeral: true });
+            if (error.message.includes('Cannot send messages to this user')) {
+                await interaction.reply({ content: 'Failed to send the message. The user has their DMs closed.', ephemeral: true });
+            } else {
+                console.error(error);
+                await interaction.reply({ content: 'An error occurred while trying to send the message.', ephemeral: true });
+            }
         }
     }
 });
