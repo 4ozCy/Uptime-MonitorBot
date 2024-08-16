@@ -8,7 +8,7 @@ const express = require('express');
 const app = express();
 
 const client = new Client({ 
-      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages],
+      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages, GatewayIntentBits.GuildVoicStates],
     partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember],
 });
 
@@ -24,7 +24,14 @@ const siteSchema = new mongoose.Schema({
       ping: Number,
 });
 
+const userSchema = new mongoose.Schema({
+    userId: String,
+    xp: { type: Number, default: 0 },
+    level: { type: Number, default: 1 },
+});
+
 const Site = mongoose.model('Site', siteSchema);
+const User = mongoose.model('User', userSchema);
 
 const commands = [
       new SlashCommandBuilder()
@@ -63,6 +70,26 @@ const commands = [
                 .setDescription('The anonymous message')
                 .setRequired(true))
         .toJSON(),
+      new SlashCommandBuilder()
+        .setName('level')
+        .setDescription('Check your current level and XP')
+        .toJSON(),
+      new SlashCommandBuilder()
+        .setName('leaderboard')
+        .setDescription('View the top users by level and XP')
+        .toJSON(),
+      new SlashCommandBuilder()
+        .setName('add-level')
+        .setDescription('Manually add levels to a user')
+        .addUserOption(option => 
+            option.setName('user')
+                .setDescription('The user to add a level to')
+                .setRequired(true))
+        .addIntegerOption(option => 
+            option.setName('levels')
+                .setDescription('The number of levels to add')
+                .setRequired(true))
+        .toJSON()
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -159,10 +186,43 @@ async function monitorSites() {
       });
 }
 
+client.on('messageCreate', async message => {
+    if (message.author.bot) return;
+
+    const user = await User.findOne({ userId: message.author.id });
+    const xpGain = Math.floor(Math.random() * 10) + 1;
+
+    if (!user) {
+        const newUser = new User({
+            userId: message.author.id,
+            username: message.author.username,
+            level: 1,
+            experience: xpGain,
+        });
+        await newUser.save();
+    } else {
+        user.experience += xpGain;
+        const xpNeeded = user.level * 100;
+
+        if (user.experience >= xpNeeded) {
+            user.level++;
+            user.experience -= xpNeeded;
+
+            const levelUpEmbed = new EmbedBuilder()
+                .setColor(0x00ff00)
+                .setDescription(`Congratulations, ${message.author.username}! You've reached level ${user.level}.`);
+
+            await message.channel.send({ embeds: [levelUpEmbed] });
+        }
+
+        await user.save();
+    }
+});
+
 client.once('ready', async () => {
       console.log(`Logged in as ${client.user.tag}!`);
       client.user.setActivity({
-            name: 'Your Monitor Heart Beat',
+            name: 'Your Heart Beat',
             type: ActivityType.Listening,
       });
       setInterval(monitorSites, 1 * 60 * 1000);
@@ -229,7 +289,58 @@ client.on('interactionCreate', async interaction => {
         } catch (error) {
             console.error(error);
             await interaction.reply({ content: `There was an error sending the message. Please try again.`, ephemeral: true });
+      } else if (commandName === 'level') {
+        const user = await User.findOne({ userId: interaction.user.id });
+
+        if (!user) {
+            await interaction.reply({
+                content: 'You have no level yet. Start chatting to gain experience!',
+                ephemeral: true,
+            });
+        } else {
+            const levelEmbed = new EmbedBuilder()
+                .setColor(0x00ff00)
+                .setTitle('Level Information')
+                .setDescription(`User: ${interaction.user.username}\nLevel: ${user.level}\nExperience: ${user.experience}/${user.level * 100}`);
+
+            await interaction.reply({ embeds: [levelEmbed], ephemeral: true });
         }
+    } else if (commandName === 'leaderboard') {
+        const topUsers = await User.find().sort({ level: -1, experience: -1 }).limit(10);
+        let leaderboardText = '<Leaderboard>\n';
+
+        topUsers.forEach((user, index) => {
+            leaderboardText += `<Rank${index + 1}>\n<User>${user.username}</User>\n<Level>${user.level}</Level>\n<XP>${user.experience}</XP>\n</Rank${index + 1}>\n`;
+        });
+
+        leaderboardText += '</Leaderboard>';
+
+        const leaderboardEmbed = new EmbedBuilder()
+            .setColor(0x00ff00)
+            .setTitle('Top 10 Users')
+            .setDescription(`\`\`\`xml\n${leaderboardText}\n\`\`\``);
+
+        await interaction.reply({ embeds: [leaderboardEmbed] });
+    } else if (commandName === 'add-level') {
+        const targetUser = interaction.options.getUser('user');
+        const levelsToAdd = interaction.options.getInteger('levels');
+
+        let user = await User.findOne({ userId: targetUser.id });
+
+        if (!user) {
+            user = new User({ userId: targetUser.id });
+        }
+
+        user.level += levelsToAdd;
+        await user.save();
+
+        const embed = new EmbedBuilder()
+            .setTitle('Level Added')
+            .setDescription(`Added **${levelsToAdd}** level(s) to **${targetUser.username}**. They are now at level **${user.level}**.`)
+            .setColor(0x00ff00)
+            .setTimestamp();
+
+        await interaction.reply({ embeds: [embed] });
     }
 });
 
