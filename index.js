@@ -62,7 +62,7 @@ const commands = [
             option.setName('message')
                 .setDescription('The anonymous message')
                 .setRequired(true))
-        .toJSON()
+        .toJSON(),
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
