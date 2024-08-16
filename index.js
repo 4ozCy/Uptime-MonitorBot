@@ -57,15 +57,11 @@ const commands = [
         .addUserOption(option =>
             option.setName('user')
                 .setDescription('The user to send the message to')
-                .setRequired(true))
+                .setRequired(true)
         .addStringOption(option =>
             option.setName('message')
                 .setDescription('The anonymous message')
-                .setRequired(false))
-        .addAttachmentOption(option =>
-            option.setName('file')
-                .setDescription('The anonymous file')
-                .setRequired(false))
+                .setRequired(true)
         .toJSON()
 ];
 
@@ -221,29 +217,16 @@ client.on('interactionCreate', async interaction => {
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
       } else if (commandName === 'anon-msg') {
-        const target = interaction.options.getUser('target');
-        const message = interaction.options.getString('message');
-        const file = interaction.options.getAttachment('file');
-
-        if (!target) {
-            await interaction.reply({ content: 'User not found.', ephemeral: true });
-            return;
-        }
-
+const targetUser = interaction.options.getUser('user');
+        const anonymousMessage = interaction.options.getString('message');
         try {
-            const dmChannel = await target.send({
-                content: message || 'Here is the file you received anonymously.',
-                files: file ? [file] : [],
-            });
-
-            await interaction.reply({ content: 'Anonymous message sent!', ephemeral: true });
-        } catch (error) {
-            if (error.code === 50007) {
-                await interaction.reply({ content: 'Failed to send the message. The user has their DMs closed.', ephemeral: true });
-            } else {
-                console.error(error);
-                await interaction.reply({ content: 'An error occurred while trying to send the message.', ephemeral: true });
+            if (anonymousMessage) {
+                await targetUser.send(`You have received an anonymous message:\n\n${anonymousMessage}`);
             }
+            await interaction.reply({ content: `Your anonymous message has been sent to ${targetUser.tag}.`, ephemeral: true });
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: `There was an error sending the message. Please try again.`, ephemeral: true });
         }
     }
 });
