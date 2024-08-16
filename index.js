@@ -217,12 +217,14 @@ client.on('interactionCreate', async interaction => {
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
       } else if (commandName === 'anon-msg') {
-const targetUser = interaction.options.getUser('user');
+            const targetUser = interaction.options.getUser('user');
         const anonymousMessage = interaction.options.getString('message');
+            
         try {
             if (anonymousMessage) {
                 await targetUser.send(`You have received an anonymous message:\n\n${anonymousMessage}`);
             }
+
             await interaction.reply({ content: `Your anonymous message has been sent to ${targetUser.tag}.`, ephemeral: true });
         } catch (error) {
             console.error(error);
