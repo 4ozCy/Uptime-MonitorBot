@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType, ChannelType } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType, ChannelType, AttachmentBuilder } = require('discord.js');
 const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
 const axios = require('axios');
 const mongoose = require('mongoose');
@@ -8,12 +8,8 @@ const express = require('express');
 const app = express();
 
 const client = new Client({ 
-      intents: [
-            GatewayIntentBits.Guilds, 
-            GatewayIntentBits.GuildMessages, 
-            GatewayIntentBits.GuildVoiceStates
-      ],
-      partials: [Partials.Channel]
+      intents: [GatewayIntentBits.Guilds, GatewayIntentBits.GuildMessages, GatewayIntentBits.MessageContent, GatewayIntentBits.GuildMembers, GatewayIntentBits.DirectMessages],
+    partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember],
 });
 
 mongoose.connect(process.env.MONGODB_URL, {
@@ -54,7 +50,23 @@ const commands = [
       new SlashCommandBuilder()
             .setName('site-list')
             .setDescription('Get a list of all monitored sites')
-            .toJSON()
+            .toJSON(),
+      new SlashCommandBuilder()
+        .setName('anon-msg')
+        .setDescription('Send an anonymous message or file to a user')
+        .addUserOption(option =>
+            option.setName('user')
+                .setDescription('The user to send the message to')
+                .setRequired(true))
+        .addStringOption(option =>
+            option.setName('message')
+                .setDescription('The anonymous message')
+                .setRequired(false))
+        .addAttachmentOption(option =>
+            option.setName('file')
+                .setDescription('The anonymous file')
+                .setRequired(false))
+        .toJSON()
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -208,7 +220,27 @@ client.on('interactionCreate', async interaction => {
                   .setColor(0x00ff00)
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
-      }
+      } else if (commandName === 'anon-msg') {
+        const targetUser = interaction.options.getUser('user');
+        const anonymousMessage = interaction.options.getString('message');
+        const anonymousFile = interaction.options.getAttachment('file');
+
+        try {
+            if (anonymousMessage) {
+                await targetUser.send(`You have received an anonymous message:\n\n${anonymousMessage}`);
+            }
+
+            if (anonymousFile) {
+                const attachment = new AttachmentBuilder(anonymousFile.url);
+                await targetUser.send({ content: `You have received an anonymous file:`, files: [attachment] });
+            }
+
+            await interaction.reply({ content: `Your anonymous message or file has been sent to ${targetUser.tag}.`, ephemeral: true });
+        } catch (error) {
+            console.error(error);
+            await interaction.reply({ content: `There was an error sending the message or file. Please try again.`, ephemeral: true });
+        }
+    }
 });
 
 app.get('/', (req, res) => {
