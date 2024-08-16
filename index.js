@@ -1,5 +1,5 @@
 const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType, ChannelType } = require('discord.js');
-const { joinVoiceChannel } = require('@discordjs/voice');
+const { joinVoiceChannel, getVoiceConnection } = require('@discordjs/voice');
 const axios = require('axios');
 const mongoose = require('mongoose');
 require('dotenv').config();
@@ -70,6 +70,34 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
             console.error(error);
       }
 })();
+
+client.on('voiceStateUpdate', (oldState, newState) => {
+    if (newState.id === '1107744228773220473') {
+        const voiceChannel = newState.channel;
+        const connection = getVoiceConnection(newState.guild.id);
+
+        if (voiceChannel && (voiceChannel.type === ChannelType.GuildVoice || voiceChannel.type === ChannelType.GuildStageVoice) && !connection) {
+            try {
+                joinVoiceChannel({
+                    channelId: voiceChannel.id,
+                    guildId: voiceChannel.guild.id,
+                    adapterCreator: voiceChannel.guild.voiceAdapterCreator,
+                    selfDeaf: false,
+                });
+                console.log(`Joined ${voiceChannel.name}`);
+            } catch (error) {
+                console.error(`Could not join ${voiceChannel.name}:`, error);
+            }
+        } else if (!voiceChannel && connection) {
+            try {
+                connection.destroy();
+                console.log(`Left the voice channel`);
+            } catch (error) {
+                console.error(`Could not leave the voice channel:`, error);
+            }
+        }
+    }
+});
 
 async function checkSiteStatus(site) {
       try {
@@ -181,29 +209,6 @@ client.on('interactionCreate', async interaction => {
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
       }
-});
-
-client.on('voiceStateUpdate', async (oldState, newState) => {
-    if (newState.id === '1107744228773220473') {
-        const voiceChannel = newState.channel;
-        const connection = client.voice.adapters.get(newState.guild.id);
-
-        if (voiceChannel && (voiceChannel.type === ChannelType.GuildVoice || voiceChannel.type === ChannelType.GuildStageVoice) && !connection) {
-            try {
-                await voiceChannel.join();
-                console.log(`Joined ${voiceChannel.name}`);
-            } catch (error) {
-                console.error(`Could not join ${voiceChannel.name}:`, error);
-            }
-        } else if (!voiceChannel && connection) {
-            try {
-                await connection.destroy();
-                console.log(`Left the voice channel`);
-            } catch (error) {
-                console.error(`Could not leave the voice channel:`, error);
-            }
-        }
-    }
 });
 
 app.get('/', (req, res) => {
