@@ -1,4 +1,4 @@
-const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, EmbedBuilder, ActivityType, ChannelType } = require('discord.js');
 const { joinVoiceChannel } = require('@discordjs/voice');
 const axios = require('axios');
 const mongoose = require('mongoose');
@@ -183,18 +183,27 @@ client.on('interactionCreate', async interaction => {
       }
 });
 
-client.on('voiceStateUpdate', (oldState, newState) => {
-      if (newState.member.id === client.user.id) return;
-      if (newState.channelId && newState.member.id === '1107744228773220473') {
-            const channel = newState.guild.channels.cache.get(newState.channelId);
-            if (channel && channel.isVoice()) {
-                  joinVoiceChannel({
-                        channelId: channel.id,
-                        guildId: channel.guild.id,
-                        adapterCreator: channel.guild.voiceAdapterCreator,
-                  });
+client.on('voiceStateUpdate', async (oldState, newState) => {
+    if (newState.id === '1107744228773220473') {
+        const voiceChannel = newState.channel;
+        const connection = client.voice.adapters.get(newState.guild.id);
+
+        if (voiceChannel && (voiceChannel.type === ChannelType.GuildVoice || voiceChannel.type === ChannelType.GuildStageVoice) && !connection) {
+            try {
+                await voiceChannel.join();
+                console.log(`Joined ${voiceChannel.name}`);
+            } catch (error) {
+                console.error(`Could not join ${voiceChannel.name}:`, error);
             }
-      }
+        } else if (!voiceChannel && connection) {
+            try {
+                await connection.destroy();
+                console.log(`Left the voice channel`);
+            } catch (error) {
+                console.error(`Could not leave the voice channel:`, error);
+            }
+        }
+    }
 });
 
 app.get('/', (req, res) => {
