@@ -291,10 +291,14 @@ client.on('interactionCreate', async interaction => {
                 .setDescription(`User: ${interaction.user.username}\nLevel: ${user.level}\nExperience: ${user.experience}/${user.level * 100}`);
 
             await interaction.reply({ embeds: [levelEmbed], ephemeral: true });
-        }
-    } else if (commandName === 'leaderboard') {
+        } else if (commandName === 'leaderboard') {
     const topUsers = await User.find().sort({ level: -1, experience: -1 }).limit(10);
     const leaderboardFields = [];
+
+    const leaderboardEmbed = new EmbedBuilder()
+        .setColor(0x00ff00)
+        .setTitle('Top 10 Users')
+        .setTimestamp();
 
     for (const [index, user] of topUsers.entries()) {
         const discordUser = await client.users.fetch(user.userId);
@@ -309,17 +313,14 @@ client.on('interactionCreate', async interaction => {
         leaderboardEmbed.addFields({
             name: '\u200b',
             value: `[Profile Picture](${discordUser.displayAvatarURL({ dynamic: true })})`,
-                                    
             inline: true
         });
     }
 
-    const leaderboardEmbed = new EmbedBuilder()
-        .setColor(0x00ff00)
-        .setTitle('Top 10 Users')
-        .addFields(leaderboardFields)
-        .setTimestamp();
+    leaderboardEmbed.addFields(leaderboardFields);
+
     await interaction.reply({ embeds: [leaderboardEmbed] });
+       }
     } else if (commandName === 'add-level') {
     const allowedUsers = ['1107744228773220473', ''];
 
