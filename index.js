@@ -319,8 +319,7 @@ client.on('interactionCreate', async interaction => {
         .setTitle('Top 10 Users')
         .addFields(leaderboardFields)
         .setTimestamp();
-
-    await interaction.reply({ embeds: [leaderboardEmbed] });}
+    await interaction.reply({ embeds: [leaderboardEmbed] });
     } else if (commandName === 'add-level') {
     const allowedUsers = ['1107744228773220473', ''];
 
