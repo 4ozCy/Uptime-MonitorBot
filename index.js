@@ -320,8 +320,7 @@ client.on('interactionCreate', async interaction => {
         .addFields(leaderboardFields)
         .setTimestamp();
 
-    await interaction.reply({ embeds: [leaderboardEmbed] });
-  }
+    await interaction.reply({ embeds: [leaderboardEmbed] });}
     } else if (commandName === 'add-level') {
     const allowedUsers = ['1107744228773220473', ''];
 
