@@ -291,7 +291,8 @@ client.on('interactionCreate', async interaction => {
                 .setDescription(`User: ${interaction.user.username}\nLevel: ${user.level}\nExperience: ${user.experience}/${user.level * 100}`);
 
             await interaction.reply({ embeds: [levelEmbed], ephemeral: true });
-        } else if (commandName === 'leaderboard') {
+        }
+     } else if (commandName === 'leaderboard') {
     const topUsers = await User.find().sort({ level: -1, experience: -1 }).limit(10);
     const leaderboardFields = [];
 
