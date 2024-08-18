@@ -292,30 +292,19 @@ client.on('interactionCreate', async interaction => {
 
             await interaction.reply({ embeds: [levelEmbed], ephemeral: true });
         }
-     } else if (commandName === 'leaderboard') {
-    const topUsers = await User.find().sort({ level: -1, experience: -1 }).limit(10);
-    const leaderboardFields = [];
+     } else if (interaction.commandName === 'leaderboard') {
+        const leaderboard = await Level.find({ guildId: interaction.guild.id }).sort({ level: -1, xp: -1 }).limit(10);
+        let leaderboardMessage = '';
 
-    const leaderboardEmbed = new EmbedBuilder()
-        .setColor(0x00ff00)
-        .setTitle('Top 10 Users')
-        .setTimestamp();
-
-    for (const [index, user] of topUsers.entries()) {
-        const discordUser = await client.users.fetch(user.userId);
-        const rank = index + 1;
-
-        leaderboardFields.push({
-            name: `#${rank} - ${discordUser.username}`,
-            value: `**Level:** ${user.level}\n**XP:** ${user.experience}`,
-            inline: false
+        leaderboard.forEach((user, index) => {
+            leaderboardMessage += `${index + 1}. <@${user.userId}> - Level ${user.level} (XP: ${user.xp})\n`;
         });
 
-        leaderboardEmbed.addFields({
-            name: '\u200b',
-            value: `[Profile Picture](${discordUser.displayAvatarURL({ dynamic: true })})`,
-            inline: true
-        });
+        const embed = new EmbedBuilder()
+            .setTitle('Leaderboard')
+            .setDescription(leaderboardMessage)
+            .setColor(0x00FF00);
+        interaction.reply({ embeds: [embed] });
     }
 
     leaderboardEmbed.addFields(leaderboardFields);
