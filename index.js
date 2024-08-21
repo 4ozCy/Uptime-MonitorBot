@@ -69,26 +69,6 @@ const commands = [
             option.setName('message')
                 .setDescription('The anonymous message')
                 .setRequired(true))
-        .toJSON(),
-      new SlashCommandBuilder()
-        .setName('level')
-        .setDescription('Check your current level and XP')
-        .toJSON(),
-      new SlashCommandBuilder()
-        .setName('leaderboard')
-        .setDescription('View the top users by level and XP')
-        .toJSON(),
-      new SlashCommandBuilder()
-        .setName('add-level')
-        .setDescription('Manually add levels to a user')
-        .addUserOption(option => 
-            option.setName('user')
-                .setDescription('The user to add a level to')
-                .setRequired(true))
-        .addIntegerOption(option => 
-            option.setName('levels')
-                .setDescription('The number of levels to add')
-                .setRequired(true))
         .toJSON()
 ];
 
@@ -186,39 +166,6 @@ async function monitorSites() {
       });
 }
 
-client.on('messageCreate', async message => {
-    if (message.author.bot) return;
-
-    const user = await User.findOne({ userId: message.author.id });
-    const xpGain = Math.floor(Math.random() * 10) + 1;
-
-    if (!user) {
-        const newUser = new User({
-            userId: message.author.id,
-            username: message.author.username,
-            level: 1,
-            experience: xpGain,
-        });
-        await newUser.save();
-    } else {
-        user.experience += xpGain;
-        const xpNeeded = user.level * 100;
-
-        if (user.experience >= xpNeeded) {
-            user.level++;
-            user.experience -= xpNeeded;
-
-            const levelUpEmbed = new EmbedBuilder()
-                .setColor(0x00ff00)
-                .setDescription(`Congratulations, ${message.author.username}! You've reached level ${user.level}.`);
-
-            await message.channel.send({ embeds: [levelUpEmbed] });
-        }
-
-        await user.save();
-    }
-});
-
 client.once('ready', async () => {
       console.log(`Logged in as ${client.user.tag}!`);
       client.user.setActivity({
@@ -276,67 +223,7 @@ client.on('interactionCreate', async interaction => {
                   .setColor(0x00ff00)
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
-      } else if (commandName === 'level') {
-        const user = await User.findOne({ userId: interaction.user.id });
-
-        if (!user) {
-            await interaction.reply({
-                content: 'You have no level yet. Start chatting to gain experience!',
-                ephemeral: true,
-            });
-        } else {
-            const levelEmbed = new EmbedBuilder()
-                .setColor(0x00ff00)
-                .setTitle('Level Information')
-                .setDescription(`User: ${interaction.user.username}\nLevel: ${user.level}\nExperience: ${user.experience}/${user.level * 100}`);
-
-            await interaction.reply({ embeds: [levelEmbed], ephemeral: true });
-        }
-     } else if (interaction.commandName === 'leaderboard') {
-        const leaderboard = await Level.find({ guildId: interaction.guild.id }).sort({ level: -1, xp: -1 }).limit(10);
-        let leaderboardMessage = '';
-
-        leaderboard.forEach((user, index) => {
-            leaderboardMessage += `${index + 1}. <@${user.userId}> - Level ${user.level} (XP: ${user.xp})\n`;
-        });
-
-        const embed = new EmbedBuilder()
-            .setTitle('Leaderboard')
-            .setDescription(leaderboardMessage)
-            .setColor(0x00FF00);
-        interaction.reply({ embeds: [embed] });
-    }
-
-    leaderboardEmbed.addFields(leaderboardFields);
-
-    await interaction.reply({ embeds: [leaderboardEmbed] });
-       }
-    } else if (commandName === 'add-level') {
-    const allowedUsers = ['1107744228773220473', ''];
-
-    if (!allowedUsers.includes(interaction.user.id)) {
-        return interaction.reply({ content: 'You do not have permission to use this command.', ephemeral: true });
-    }
-
-    const targetUser = interaction.options.getUser('user');
-    const levelsToAdd = interaction.options.getInteger('levels');
-
-    let user = await User.findOne({ userId: targetUser.id });
-
-    if (!user) {
-        user = new User({ userId: targetUser.id, username: targetUser.username, level: 1, experience: 0 });
-    }
-
-    user.level += levelsToAdd;
-    await user.save();
-
-    const embed = new EmbedBuilder()
-        .setTitle('Level Added')
-        .setDescription(`Added **${levelsToAdd}** level(s) to **${targetUser.username}**. They are now at level **${user.level}**.`)
-        .setColor(0x00ff00)
-        .setTimestamp();
-
-    await interaction.reply({ embeds: [embed] });
+          }
       } else if (commandName === 'anon-msg') {
             const targetUser = interaction.options.getUser('user');
         const anonymousMessage = interaction.options.getString('message');
