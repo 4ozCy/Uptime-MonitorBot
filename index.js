@@ -24,14 +24,7 @@ const siteSchema = new mongoose.Schema({
       ping: Number,
 });
 
-const userSchema = new mongoose.Schema({
-    userId: String,
-    xp: { type: Number, default: 0 },
-    level: { type: Number, default: 1 },
-});
-
 const Site = mongoose.model('Site', siteSchema);
-const User = mongoose.model('User', userSchema);
 
 const commands = [
       new SlashCommandBuilder()
@@ -223,7 +216,6 @@ client.on('interactionCreate', async interaction => {
                   .setColor(0x00ff00)
                   .setTimestamp();
             await interaction.reply({ embeds: [embed] });
-          }
       } else if (commandName === 'anon-msg') {
             const targetUser = interaction.options.getUser('user');
         const anonymousMessage = interaction.options.getString('message');
