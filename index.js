@@ -269,7 +269,6 @@ client.on('interactionCreate', async interaction => {
             .setColor(0x00ff00)
             .setTimestamp();
         await interaction.reply({ embeds: [embed] });
-      }
     }
 });
 
