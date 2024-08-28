@@ -253,6 +253,7 @@ client.on('interactionCreate', async interaction => {
             await interaction.reply({ embeds: [embed] });
         } else {
             await interaction.reply({ content: `No site found with the URL **${url}**.`, ephemeral: true });
+       }
     } else if (commandName === 'help') {
         const embed = new EmbedBuilder()
             .setTitle('Help - List of Commands')
