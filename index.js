@@ -235,6 +235,7 @@ client.on('interactionCreate', async interaction => {
         } catch (error) {
             console.error(error);
             await interaction.reply({ content: `There was an error sending the message. Please try again.`, ephemeral: true });
+       }
     } else if (commandName === 'uptime') {
         const url = interaction.options.getString('url');
         const site = await Site.findOne({ url: url });
