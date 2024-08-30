@@ -342,11 +342,10 @@ app.listen(port, () => {
 
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-});
 
-client.user.setActivity({
-    name: 'Gotham City',
-    type: Activity.watching,
-  });
+  client.user.setPresence({
+  activities: [{ name: 'Gotham City', type: 'WATCHING' }],
+  status: 'dnd',
+});
 
 client.login(process.env.TOKEN);
