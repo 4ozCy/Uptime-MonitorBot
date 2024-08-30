@@ -1,5 +1,5 @@
 require('dotenv').config();
-const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder } = require('discord.js');
+const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder, ActivityType} = require('discord.js');
 const mongoose = require('mongoose');
 const express = require('express');
 
@@ -339,3 +339,14 @@ client.on('interactionCreate', async interaction => {
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
 });
+
+client.once('ready', () => {
+  console.log(`Logged in as ${client.user.tag}!`);
+});
+
+client.user.setActivity({
+    name: 'Gotham City',
+    type: Activity.watching,
+  });
+
+client.login(process.env.TOKEN);
