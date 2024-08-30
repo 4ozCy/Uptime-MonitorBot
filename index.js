@@ -1,6 +1,10 @@
 require('dotenv').config();
 const { Client, GatewayIntentBits, Partials, REST, Routes, SlashCommandBuilder } = require('discord.js');
 const mongoose = require('mongoose');
+const express = require('express');
+
+const app = express();
+const port = 8080();
 
 const client = new Client({
   intents: [
@@ -12,7 +16,6 @@ const client = new Client({
   partials: [Partials.Channel, Partials.Message, Partials.User, Partials.GuildMember],
 });
 
-// Connect to MongoDB
 mongoose.connect(process.env.MONGODB_URL, {
   useNewUrlParser: true,
   useUnifiedTopology: true,
@@ -331,4 +334,8 @@ client.on('interactionCreate', async interaction => {
       ephemeral: true
     });
   }
+});
+
+app.listen(port, () => {
+  console.log(`Server running on http://localhost:${port}`);
 });
