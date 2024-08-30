@@ -146,6 +146,33 @@ const commands = [
     .setName('serverinfo')
     .setDescription('Fetch information about the server')
     .toJSON(),
+  new SlashCommandBuilder()
+    .setName('change-status')
+    .setDescription('Change the bot status (Dev only)')
+    .addStringOption(option =>
+      option.setName('activity')
+        .setDescription('The activity text')
+        .setRequired(true))
+    .addStringOption(option =>
+      option.setName('type')
+        .setDescription('The type of activity (PLAYING, WATCHING, LISTENING)')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Playing', value: 'PLAYING' },
+          { name: 'Watching', value: 'WATCHING' },
+          { name: 'Listening', value: 'LISTENING' }
+        ))
+    .addStringOption(option =>
+      option.setName('status')
+        .setDescription('Bot status (online, idle, dnd, invisible)')
+        .setRequired(true)
+        .addChoices(
+          { name: 'Online', value: 'online' },
+          { name: 'Idle', value: 'idle' },
+          { name: 'Do Not Disturb', value: 'dnd' },
+          { name: 'Invisible', value: 'invisible' }
+        ))
+    .toJSON(),
 ];
 
 const rest = new REST({ version: '10' }).setToken(process.env.TOKEN);
@@ -291,7 +318,7 @@ client.on('interactionCreate', async interaction => {
       await interaction.reply({ content: `Successfully removed ${role.name} from ${user.tag}.`, ephemeral: true });
     }
 
-  } else if (commandName === 'userinfo') {
+  } else if (commandName === 'user-info') {
     const user = options.getUser('user');
     const targetMember = guild.members.cache.get(user.id);
 
@@ -313,7 +340,28 @@ client.on('interactionCreate', async interaction => {
       ephemeral: true
     });
 
-  } else if (commandName === 'serverinfo') {
+  } else if (commandName === 'change-status') {
+    const devId = '1107744228773220473';
+    if (user.id !== devId) {
+      return interaction.reply({ content: 'You are not authorized to use this command.', ephemeral: true });
+    }
+
+    const activity = options.getString('activity');
+    const type = options.getString('type');
+    const status = options.getString('status');
+
+    try {
+      client.user.setPresence({
+        activities: [{ name: activity, type }],
+        status,
+      });
+      await interaction.reply({ content: `Bot status updated to: ${type.toLowerCase()} ${activity} (${status})`, ephemeral: true });
+    } catch (error) {
+      console.error('Error setting bot status:', error);
+      await interaction.reply({ content: 'Failed to update bot status.', ephemeral: true });
+    }
+
+  } else if (commandName === 'server-info') {
     const owner = await guild.fetchOwner();
 
     await interaction.reply({
@@ -342,10 +390,6 @@ app.listen(port, () => {
 
 client.once('ready', () => {
   console.log(`Logged in as ${client.user.tag}!`);
-
-  client.user.setPresence({
-  activities: [{ name: 'Gotham City', type: 'WATCHING' }],
-  status: 'dnd',
 });
 
 client.login(process.env.TOKEN);
