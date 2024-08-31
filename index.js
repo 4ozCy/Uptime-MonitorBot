@@ -27,6 +27,10 @@ const userSchema = new mongoose.Schema({
   warnings: { type: Number, default: 0 },
 });
 
+client.once('ready', () => {
+  console.log(`Logged in as ${client.user.tag}!`);
+});
+
 const User = mongoose.model('User', userSchema);
 
 const commands = [
@@ -386,10 +390,6 @@ client.on('interactionCreate', async interaction => {
 
 app.listen(port, () => {
   console.log(`Server running on http://localhost:${port}`);
-});
-
-client.once('ready', () => {
-  console.log(`Logged in as ${client.user.tag}!`);
 });
 
 client.login(process.env.TOKEN);
